@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易系统监控面板</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <header class="header">
+            <h1>EMA/MA 交易系统监控面板</h1>
+            <div class="header-actions">
+                <button class="refresh-btn">刷新数据</button>
+                <div class="status-indicator status-running"></div>
+                <span>系统运行中</span>
+            </div>
+        </header>
+
+        <!-- 统计概览 -->
+        <section class="section">
+            <h2>统计概览</h2>
+            <div id="stats-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>加载统计数据中...</p>
+            </div>
+        </section>
+
+        <!-- 系统配置 -->
+        <section class="section">
+            <h2>系统配置</h2>
+            <div id="config-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>加载配置信息中...</p>
+            </div>
+        </section>
+
+        <!-- 当前持仓 -->
+        <section class="section">
+            <h2>当前持仓</h2>
+            <div id="positions-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>暂无持仓</p>
+            </div>
+        </section>
+
+        <!-- 当前价格 -->
+        <section class="section">
+            <h2>当前价格</h2>
+            <div id="current-price-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>加载价格信息中...</p>
+            </div>
+        </section>
+
+        <!-- 订单历史 -->
+        <section class="section">
+            <h2>订单历史</h2>
+            <div id="order-history-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>加载订单历史中...</p>
+            </div>
+        </section>
+
+        <!-- API交易历史 -->
+        <section class="section">
+            <h2>API交易历史</h2>
+            <div id="trade-history-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>加载交易历史中...</p>
+            </div>
+        </section>
+
+        <!-- 交易记录 -->
+        <section class="section">
+            <h2>交易记录</h2>
+            <div id="trades-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>暂无交易记录</p>
+            </div>
+        </section>
+
+        <!-- K线数据 -->
+        <section class="section">
+            <h2>K线数据</h2>
+            <div id="klines-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>加载K线数据中...</p>
+            </div>
+        </section>
+
+        <!-- 资金流水 -->
+        <section class="section">
+            <h2>资金流水</h2>
+            <div id="fund-flows-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>暂无资金流水</p>
+            </div>
+        </section>
+
+        <!-- API连接状态 -->
+        <section class="section">
+            <h2>API连接状态</h2>
+            <div id="connectivity-container" class="loading">
+                <div class="loading-spinner"></div>
+                <p>检测连接状态中...</p>
+            </div>
+        </section>
+
+        <!-- 页面底部 -->
+        <footer class="footer">
+            <p>&copy; 2024 EMA/MA 交易系统 - 实时监控面板</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
