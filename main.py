@@ -285,23 +285,35 @@ class RealTradingSystem:
             # 根据技术指标生成交易信号
             action = None
             
-            # 检查EMA金叉MA（做多信号）
-            if signals.get('golden_cross', False):
+            # 使用完整的入场条件检查
+            # 检查做多条件
+            if TechnicalIndicators.check_entry_conditions(signals, 'LONG'):
                 # 先平空仓，再开多仓
                 if any(pos.side == 'SHORT' for pos in self.executor.local_positions):
                     action = 'CLOSE_SHORT_OPEN_LONG'
                 else:
                     action = 'BUY'
-                self.logger.info(f"检测到EMA金叉MA: EMA={signals.get('ema', 0):.2f}, MA={signals.get('ma', 0):.2f}")
+                self.logger.info(f"满足做多条件 - EMA金叉MA: EMA={signals.get('ema', 0):.2f}, MA={signals.get('ma', 0):.2f}, "
+                               f"价格={current_price:.2f}, EMA斜率={signals.get('ema_slope', 0):.4f}")
             
-            # 检查EMA死叉MA（做空信号）
-            elif signals.get('death_cross', False):
+            # 检查做空条件
+            elif TechnicalIndicators.check_entry_conditions(signals, 'SHORT'):
                 # 先平多仓，再开空仓
                 if any(pos.side == 'LONG' for pos in self.executor.local_positions):
                     action = 'CLOSE_LONG_OPEN_SHORT'
                 else:
                     action = 'SELL'
-                self.logger.info(f"检测到EMA死叉MA: EMA={signals.get('ema', 0):.2f}, MA={signals.get('ma', 0):.2f}")
+                self.logger.info(f"满足做空条件 - EMA死叉MA: EMA={signals.get('ema', 0):.2f}, MA={signals.get('ma', 0):.2f}, "
+                               f"价格={current_price:.2f}, EMA斜率={signals.get('ema_slope', 0):.4f}")
+            
+            # 记录当前信号状态（用于调试）
+            if signals.get('golden_cross', False) or signals.get('death_cross', False):
+                self.logger.info(f"信号状态 - 金叉:{signals.get('golden_cross', False)}, "
+                               f"死叉:{signals.get('death_cross', False)}, "
+                               f"价格>EMA:{signals.get('price_above_ema', False)}, "
+                               f"价格>MA:{signals.get('price_above_ma', False)}, "
+                               f"EMA>MA:{signals.get('ema_above_ma', False)}, "
+                               f"EMA斜率:{signals.get('ema_slope', 0):.4f}")
             
             # 执行交易信号
             if action == 'BUY':
@@ -346,9 +358,10 @@ class RealTradingSystem:
                 if result:
                     self.logger.info(f"开多仓成功: 价格={current_price}, 仓位={position_size}")
                     
-                    # 记录资金流水
-                    self.trade_recorder.record_transaction({
-                        'type': 'OPEN_LONG',
+                    # 记录交易
+                    self.trade_recorder.record_trade({
+                        'action': 'OPEN',
+                        'side': 'LONG',
                         'symbol': self.symbol,
                         'price': current_price,
                         'quantity': position_size / current_price,
@@ -382,9 +395,10 @@ class RealTradingSystem:
                 if result:
                     self.logger.info(f"开空仓成功: 价格={current_price}, 仓位={position_size}")
                     
-                    # 记录资金流水
-                    self.trade_recorder.record_transaction({
-                        'type': 'OPEN_SHORT',
+                    # 记录交易
+                    self.trade_recorder.record_trade({
+                        'action': 'OPEN',
+                        'side': 'SHORT',
                         'symbol': self.symbol,
                         'price': current_price,
                         'quantity': position_size / current_price,

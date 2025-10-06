@@ -36,6 +36,13 @@ class BinanceFuturesClient:
             'X-MBX-APIKEY': self.api_key,
             'Content-Type': 'application/json'
         })
+        
+        # 配置代理
+        proxies = {
+            'http': 'http://127.0.0.1:7890',
+            'https': 'http://127.0.0.1:7890'
+        }
+        self.session.proxies.update(proxies)
     
     def _generate_signature(self, params: Dict[str, Any]) -> str:
         """
