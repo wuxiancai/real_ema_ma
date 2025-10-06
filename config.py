@@ -36,7 +36,7 @@ class TradingConfig:
         
         # 测试模式配置
         self.TEST_MODE = True  # 测试模式开关，True时不执行真实交易
-        self.PAPER_TRADING = False  # 模拟交易模式
+        self.PAPER_TRADING = True  # 模拟交易模式
         
     def get_config_dict(self) -> Dict[str, Any]:
         """
