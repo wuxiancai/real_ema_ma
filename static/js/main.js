@@ -27,6 +27,7 @@ function initializePage() {
 function loadAllData() {
     loadConfig();
     loadStatistics();
+    loadAccountSummary();
     loadPositions();
     loadTrades();
     loadFundFlows();
@@ -87,6 +88,25 @@ function loadStatistics() {
         .catch(error => {
             console.error('加载统计数据失败:', error);
             renderError('stats-container', error.message);
+        });
+}
+
+/**
+ * 加载账户摘要信息
+ */
+function loadAccountSummary() {
+    fetch('/api/account_summary')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderAccountSummary(data.data);
+            } else {
+                renderError('account-summary-container', data.error || '加载账户信息失败');
+            }
+        })
+        .catch(error => {
+            console.error('加载账户信息失败:', error);
+            renderError('account-summary-container', error.message);
         });
 }
 
@@ -352,6 +372,63 @@ function renderStatistics(stats) {
                 <div class="stat-label">ROI</div>
                 <div class="stat-value ${stats.roi >= 0 ? 'positive' : 'negative'}">
                     ${stats.roi ? (stats.roi * 100).toFixed(2) : '0.00'}%
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * 渲染账户摘要信息
+ */
+function renderAccountSummary(summary) {
+    const container = document.getElementById('account-summary-container');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="account-info-grid">
+            <div class="account-summary">
+                <h3>账户</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="label">保证金比率</span>
+                        <span class="value ${summary.margin_ratio > 80 ? 'loss' : summary.margin_ratio > 50 ? 'neutral' : 'profit'}">
+                            ${summary.margin_ratio ? summary.margin_ratio.toFixed(2) : '0.00'}%
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">维持保证金</span>
+                        <span class="value">${summary.maintenance_margin ? summary.maintenance_margin.toFixed(4) : '0.0000'} USDT</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">保证金余额</span>
+                        <span class="value">${summary.margin_balance ? summary.margin_balance.toFixed(4) : '0.0000'} USDT</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="assets-section">
+                <h3>单币保证金模式</h3>
+                <div class="assets-grid">
+                    <div class="asset-item">
+                        <div class="asset-name">USDT</div>
+                        <div class="asset-details">
+                            <div class="asset-row">
+                                <span>钱包余额</span>
+                                <span>${summary.usdt_balance ? summary.usdt_balance.toFixed(4) : '0.0000'} USDT</span>
+                            </div>
+                            <div class="asset-row">
+                                <span>未实现盈亏</span>
+                                <span class="${summary.unrealized_pnl >= 0 ? 'profit' : 'loss'}">
+                                    ${summary.unrealized_pnl ? summary.unrealized_pnl.toFixed(4) : '0.0000'} USDT
+                                </span>
+                            </div>
+                            <div class="asset-row">
+                                <span>可用余额</span>
+                                <span>${summary.usdt_available ? summary.usdt_available.toFixed(4) : '0.0000'} USDT</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

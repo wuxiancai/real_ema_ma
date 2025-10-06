@@ -282,93 +282,141 @@ class RealTradingSystem:
             # 获取当前持仓
             current_positions = self.position_manager.get_current_positions()
             
-            # 检查是否有交易信号
-            if signals.get('action') == 'BUY':
-                # 检查是否可以开仓
-                account_info = self.client.get_account_info()
-                account_balance = float(account_info.get('totalWalletBalance', 0))
-                
-                if self.position_manager.can_open_new_position(account_balance):
-                    # 计算仓位大小
-                    position_size = account_balance * config.POSITION_SIZE_PERCENT
-                    
-                    # 开多仓
-                    result = self.executor.open_position(
-                        'LONG', 
-                        position_size, 
-                        current_price, 
-                        current_time
-                    )
-                    
-                    if result:
-                        self.logger.info(f"开多仓成功: 价格={current_price}, 仓位={position_size}")
-                        
-                        # 记录资金流水
-                        self.trade_recorder.record_transaction({
-                            'type': 'OPEN_LONG',
-                            'symbol': self.symbol,
-                            'price': current_price,
-                            'quantity': position_size / current_price,
-                            'amount': position_size,
-                            'timestamp': current_time.isoformat(),
-                            'commission': position_size * config.COMMISSION_RATE
-                        })
-                else:
-                    self.logger.warning("无法开仓：不满足开仓条件")
-                    
-            elif signals.get('action') == 'SELL':
-                # 检查是否可以开仓
-                account_info = self.client.get_account_info()
-                account_balance = float(account_info.get('totalWalletBalance', 0))
-                
-                if self.position_manager.can_open_new_position(account_balance):
-                    # 计算仓位大小
-                    position_size = account_balance * config.POSITION_SIZE_PERCENT
-                    
-                    # 开空仓
-                    result = self.executor.open_position(
-                        'SHORT', 
-                        position_size, 
-                        current_price, 
-                        current_time
-                    )
-                    
-                    if result:
-                        self.logger.info(f"开空仓成功: 价格={current_price}, 仓位={position_size}")
-                        
-                        # 记录资金流水
-                        self.trade_recorder.record_transaction({
-                            'type': 'OPEN_SHORT',
-                            'symbol': self.symbol,
-                            'price': current_price,
-                            'quantity': position_size / current_price,
-                            'amount': position_size,
-                            'timestamp': current_time.isoformat(),
-                            'commission': position_size * config.COMMISSION_RATE
-                        })
-                else:
-                    self.logger.warning("无法开仓：不满足开仓条件")
+            # 根据技术指标生成交易信号
+            action = None
             
-            # 检查是否需要平仓（基于技术指标）
-            if signals.get('action') == 'CLOSE':
-                # 平掉所有仓位
-                for i in range(len(self.executor.local_positions)):
-                    pnl = self.executor.close_position(i, current_price, current_time)
+            # 检查EMA金叉MA（做多信号）
+            if signals.get('golden_cross', False):
+                # 先平空仓，再开多仓
+                if any(pos.side == 'SHORT' for pos in self.executor.local_positions):
+                    action = 'CLOSE_SHORT_OPEN_LONG'
+                else:
+                    action = 'BUY'
+                self.logger.info(f"检测到EMA金叉MA: EMA={signals.get('ema', 0):.2f}, MA={signals.get('ma', 0):.2f}")
+            
+            # 检查EMA死叉MA（做空信号）
+            elif signals.get('death_cross', False):
+                # 先平多仓，再开空仓
+                if any(pos.side == 'LONG' for pos in self.executor.local_positions):
+                    action = 'CLOSE_LONG_OPEN_SHORT'
+                else:
+                    action = 'SELL'
+                self.logger.info(f"检测到EMA死叉MA: EMA={signals.get('ema', 0):.2f}, MA={signals.get('ma', 0):.2f}")
+            
+            # 执行交易信号
+            if action == 'BUY':
+                # 开多仓
+                self._open_long_position(current_price, current_time)
                     
-                    # 记录资金流水
-                    self.trade_recorder.record_transaction({
-                        'type': 'CLOSE_POSITION',
-                        'symbol': self.symbol,
-                        'price': current_price,
-                        'pnl': pnl,
-                        'timestamp': current_time.isoformat(),
-                        'commission': abs(pnl) * config.COMMISSION_RATE if pnl else 0
-                    })
-                    
-                    self.logger.info(f"平仓完成: 价格={current_price}, 盈亏={pnl:.2f}")
+            elif action == 'SELL':
+                # 开空仓
+                self._open_short_position(current_price, current_time)
+            
+            elif action == 'CLOSE_SHORT_OPEN_LONG':
+                # 先平空仓，再开多仓
+                self._close_all_positions(current_price, current_time)
+                self._open_long_position(current_price, current_time)
+            
+            elif action == 'CLOSE_LONG_OPEN_SHORT':
+                # 先平多仓，再开空仓
+                self._close_all_positions(current_price, current_time)
+                self._open_short_position(current_price, current_time)
             
         except Exception as e:
             self.logger.error(f"执行交易逻辑失败: {e}")
+    
+    def _open_long_position(self, current_price: float, current_time: datetime):
+        """开多仓"""
+        try:
+            # 检查是否可以开仓
+            account_info = self.client.get_account_info()
+            account_balance = float(account_info.get('totalWalletBalance', 0))
+            
+            if self.position_manager.can_open_new_position(account_balance):
+                # 计算仓位大小
+                position_size = account_balance * config.POSITION_SIZE_PERCENT
+                
+                # 开多仓
+                result = self.executor.open_position(
+                    'LONG', 
+                    current_price, 
+                    current_time
+                )
+                
+                if result:
+                    self.logger.info(f"开多仓成功: 价格={current_price}, 仓位={position_size}")
+                    
+                    # 记录资金流水
+                    self.trade_recorder.record_transaction({
+                        'type': 'OPEN_LONG',
+                        'symbol': self.symbol,
+                        'price': current_price,
+                        'quantity': position_size / current_price,
+                        'amount': position_size,
+                        'timestamp': current_time.isoformat(),
+                        'commission': position_size * config.COMMISSION_RATE
+                    })
+            else:
+                self.logger.warning("无法开多仓：不满足开仓条件")
+        except Exception as e:
+            self.logger.error(f"开多仓失败: {e}")
+    
+    def _open_short_position(self, current_price: float, current_time: datetime):
+        """开空仓"""
+        try:
+            # 检查是否可以开仓
+            account_info = self.client.get_account_info()
+            account_balance = float(account_info.get('totalWalletBalance', 0))
+            
+            if self.position_manager.can_open_new_position(account_balance):
+                # 计算仓位大小
+                position_size = account_balance * config.POSITION_SIZE_PERCENT
+                
+                # 开空仓
+                result = self.executor.open_position(
+                    'SHORT', 
+                    current_price, 
+                    current_time
+                )
+                
+                if result:
+                    self.logger.info(f"开空仓成功: 价格={current_price}, 仓位={position_size}")
+                    
+                    # 记录资金流水
+                    self.trade_recorder.record_transaction({
+                        'type': 'OPEN_SHORT',
+                        'symbol': self.symbol,
+                        'price': current_price,
+                        'quantity': position_size / current_price,
+                        'amount': position_size,
+                        'timestamp': current_time.isoformat(),
+                        'commission': position_size * config.COMMISSION_RATE
+                    })
+            else:
+                self.logger.warning("无法开空仓：不满足开仓条件")
+        except Exception as e:
+            self.logger.error(f"开空仓失败: {e}")
+    
+    def _close_all_positions(self, current_price: float, current_time: datetime):
+        """平掉所有仓位"""
+        try:
+            # 平掉所有仓位
+            for i in range(len(self.executor.local_positions)):
+                pnl = self.executor.close_position(i, current_price, current_time)
+                
+                # 记录资金流水
+                self.trade_recorder.record_transaction({
+                    'type': 'CLOSE_POSITION',
+                    'symbol': self.symbol,
+                    'price': current_price,
+                    'pnl': pnl,
+                    'timestamp': current_time.isoformat(),
+                    'commission': abs(pnl) * config.COMMISSION_RATE if pnl else 0
+                })
+                
+                self.logger.info(f"平仓完成: 价格={current_price}, 盈亏={pnl:.2f}")
+        except Exception as e:
+            self.logger.error(f"平仓失败: {e}")
     
     def save_snapshots(self):
         """保存快照数据"""

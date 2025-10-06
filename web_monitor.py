@@ -130,6 +130,53 @@ class WebMonitor:
             except Exception as e:
                 return jsonify({'success': False, 'error': str(e)})
         
+        @self.app.route('/api/account_summary')
+        def get_account_summary():
+            """获取账户摘要信息（格式化后的账户信息）"""
+            try:
+                account_info = self.client.get_account_info()
+                
+                # 计算总余额和保证金信息
+                total_wallet_balance = float(account_info.get('totalWalletBalance', 0))
+                total_unrealized_pnl = float(account_info.get('totalUnrealizedProfit', 0))
+                total_margin_balance = float(account_info.get('totalMarginBalance', 0))
+                total_initial_margin = float(account_info.get('totalInitialMargin', 0))
+                total_maint_margin = float(account_info.get('totalMaintMargin', 0))
+                
+                # 计算保证金率
+                margin_ratio = 0.0
+                if total_margin_balance > 0:
+                    margin_ratio = (total_maint_margin / total_margin_balance) * 100
+                
+                # 获取USDT资产信息
+                usdt_asset = None
+                for asset in account_info.get('assets', []):
+                    if asset['asset'] == 'USDT':
+                        usdt_asset = asset
+                        break
+                
+                usdt_balance = 0.0
+                usdt_available = 0.0
+                if usdt_asset:
+                    usdt_balance = float(usdt_asset.get('walletBalance', 0))
+                    usdt_available = float(usdt_asset.get('availableBalance', 0))
+                
+                # 格式化账户摘要
+                summary = {
+                    'margin_ratio': round(margin_ratio, 2),
+                    'maintenance_margin': round(total_maint_margin, 4),
+                    'margin_balance': round(total_margin_balance, 4),
+                    'total_balance': round(total_wallet_balance, 4),
+                    'unrealized_pnl': round(total_unrealized_pnl, 4),
+                    'usdt_balance': round(usdt_balance, 4),
+                    'usdt_available': round(usdt_available, 4),
+                    'initial_margin': round(total_initial_margin, 4)
+                }
+                
+                return jsonify({'success': True, 'data': summary})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+        
         @self.app.route('/api/order_history')
         def get_order_history():
             """获取订单历史"""
@@ -269,7 +316,7 @@ class WebMonitor:
                 'test_mode': config.TEST_MODE
             }
     
-    def run(self, host='127.0.0.1', port=5000, debug=False):
+    def run(self, host='127.0.0.1', port=5001, debug=False):
         """运行Web服务器"""
         print(f"Web监控界面启动: http://{host}:{port}")
         self.app.run(host=host, port=port, debug=debug)
@@ -278,7 +325,7 @@ class WebMonitor:
 def main():
     """主函数"""
     monitor = WebMonitor()
-    monitor.run(host='0.0.0.0', port=5000, debug=True)
+    monitor.run(host='0.0.0.0', port=5001, debug=True)
 
 
 if __name__ == "__main__":
