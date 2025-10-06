@@ -155,7 +155,7 @@ start_web_monitor() {
     if kill -0 $WEB_PID 2>/dev/null; then
         log_info "Web监控界面启动成功 (PID: $WEB_PID)"
         echo $WEB_PID > .web_pid
-        log_info "Web监控地址: http://localhost:5008"
+        log_info "Web监控地址: http://localhost:8888"
     else
         log_error "Web监控界面启动失败"
         # 如果Web启动失败，停止交易系统
@@ -183,7 +183,7 @@ show_status() {
     
     if [ -f ".web_pid" ] && kill -0 $(cat .web_pid) 2>/dev/null; then
         echo "✅ Web监控界面: 运行中 (PID: $(cat .web_pid))"
-        echo "🌐 监控地址: http://localhost:5008"
+        echo "🌐 监控地址: http://localhost:8888"
     else
         echo "❌ Web监控界面: 未运行"
     fi
