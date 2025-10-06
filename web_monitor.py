@@ -269,7 +269,7 @@ class WebMonitor:
                 'test_mode': config.TEST_MODE
             }
     
-    def run(self, host='127.0.0.1', port=5001, debug=False):
+    def run(self, host='127.0.0.1', port=5000, debug=False):
         """运行Web服务器"""
         print(f"Web监控界面启动: http://{host}:{port}")
         self.app.run(host=host, port=port, debug=debug)
@@ -278,7 +278,7 @@ class WebMonitor:
 def main():
     """主函数"""
     monitor = WebMonitor()
-    monitor.run(host='0.0.0.0', port=5001, debug=True)
+    monitor.run(host='0.0.0.0', port=5000, debug=True)
 
 
 if __name__ == "__main__":
